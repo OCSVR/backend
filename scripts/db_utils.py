@@ -83,7 +83,7 @@ def is_default_user(uid):
 MIGRATED_TYPES = [
     'sections', 'users', 'topics', 'microblogs', 'posts', 'classrooms',
     'feedback', 'study', 'personas', 'user_personas',
-    'leaderboard', 'elementary_leaderboard', 'skill_snapshots', 'presence',
+    'leaderboard', 'elementary_leaderboard', 'skill_snapshots', 'training_sessions', 'presence',
 ]
 
 
@@ -112,6 +112,7 @@ def local_counts():
     from model.persona import Persona, UserPersona
     from model.leaderboard import ScoreCounterEvent, ElementaryLeaderboardEvent
     from model.skill_snapshot import SkillSnapshot
+    from model.training import TrainingSession
     from main import db
 
     models = {
@@ -121,6 +122,7 @@ def local_counts():
         'leaderboard': ScoreCounterEvent,
         'elementary_leaderboard': ElementaryLeaderboardEvent,
         'skill_snapshots': SkillSnapshot,
+        'training_sessions': TrainingSession,
     }
     counts = {name: model.query.count() for name, model in models.items()}
     counts['user_sections'] = UserSection.query.count()

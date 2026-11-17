@@ -24,6 +24,7 @@ from model.presence import CameraCheck, PresenceEvent, PresencePeriod, PresenceR
 from model.presence_schedule import PresenceSchedule, PresenceScheduleBlock, PresenceScheduleOverride
 from model.rfid_tag import RfidTag
 from model.presence_backup import export_presence, import_presence
+from model.training import TrainingSession, export_sessions, import_sessions
 from api.request_body import json_object
 
 data_export_import_api = Blueprint('data_export_import_api', __name__, url_prefix='/api/export')
@@ -58,6 +59,7 @@ MIGRATED_MODELS = {
     'leaderboard':              ScoreCounterEvent,
     'elementary_leaderboard':   ElementaryLeaderboardEvent,
     'skill_snapshots':          SkillSnapshot,
+    'training_sessions':        TrainingSession,
     # Presence system (exported/imported together as one 'presence' bundle,
     # see model/presence_backup.py)
     'presence_schedules':          PresenceSchedule,
@@ -142,6 +144,7 @@ class ExportAllData(Resource):
                 'leaderboard': self._export_event_table(ScoreCounterEvent),
                 'elementary_leaderboard': self._export_event_table(ElementaryLeaderboardEvent),
                 'skill_snapshots': self._export_skill_snapshots(),
+                'training_sessions': export_sessions(),
                 'presence': export_presence(),
             }
 
@@ -330,6 +333,7 @@ class ImportAllData(Resource):
             'leaderboard': {'imported': 0, 'failed': 0, 'errors': []},
             'elementary_leaderboard': {'imported': 0, 'failed': 0, 'errors': []},
             'skill_snapshots': {'imported': 0, 'failed': 0, 'errors': []},
+            'training_sessions': {'imported': 0, 'failed': 0, 'errors': []},
         }
 
         try:
@@ -386,6 +390,10 @@ class ImportAllData(Resource):
             # 12. Skill snapshots (depend on users)
             if 'skill_snapshots' in data:
                 results['skill_snapshots'] = self._import_skill_snapshots(data['skill_snapshots'])
+
+            # 12b. OCS VR training sessions (depend on users; see model/training.py)
+            if 'training_sessions' in data:
+                results['training_sessions'] = import_sessions(data['training_sessions'])
 
             # 13. Presence system: rooms, schedules, tags, periods, events (depend on users)
             if 'presence' in data:
@@ -1404,6 +1412,43 @@ class ImportSkillSnapshots(Resource):
             return {'message': f'Import failed: {str(e)}'}, 500
 
 
+class ExportTrainingSessions(Resource):
+    """Export OCS VR training sessions (model/training.py)."""
+    @token_required()
+    def get(self):
+        if g.current_user.role != account_types.admin_role():
+            return {'message': 'Admin privileges required'}, 403
+
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        pagination = TrainingSession.query.order_by(TrainingSession.id).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        result = export_sessions(pagination.items)
+
+        return jsonify({
+            'training_sessions': result,
+            'count': len(result),
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page,
+            'has_next': pagination.has_next,
+            'has_prev': pagination.has_prev
+        })
+
+
+class ImportTrainingSessions(Resource):
+    """Import OCS VR training sessions only. Skips sessions that already exist."""
+    @token_required()
+    def post(self):
+        if g.current_user.role != account_types.admin_role():
+            return {'message': 'Admin privileges required'}, 403
+
+        data = json_object()
+        result = import_sessions(data.get('training_sessions', []))
+        return jsonify({'training_sessions': result, 'message': 'Training sessions import complete'})
+
+
 # Register endpoints
 class ExportPresence(Resource):
     """Export the presence system's tables as one bundle (model/presence_backup.py)."""
@@ -1450,6 +1495,7 @@ api.add_resource(ExportUserPersonas, '/user_personas')
 api.add_resource(ExportLeaderboard, '/leaderboard')
 api.add_resource(ExportElementaryLeaderboard, '/elementary_leaderboard')
 api.add_resource(ExportSkillSnapshots, '/skill_snapshots')
+api.add_resource(ExportTrainingSessions, '/training_sessions')
 api.add_resource(ExportPresence, '/presence')
 
 # Chunked import endpoints (POST to same paths as export)
@@ -1466,4 +1512,5 @@ api.add_resource(ImportUserPersonas, '/import/user_personas')
 api.add_resource(ImportLeaderboard, '/import/leaderboard')
 api.add_resource(ImportElementaryLeaderboard, '/import/elementary_leaderboard')
 api.add_resource(ImportSkillSnapshots, '/import/skill_snapshots')
+api.add_resource(ImportTrainingSessions, '/import/training_sessions')
 api.add_resource(ImportPresence, '/import/presence')

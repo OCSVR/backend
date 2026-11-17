@@ -426,7 +426,7 @@ paths, so the rarely used rebuild is tested every time the common one is.
 
 `sections`, `users`, `topics`, `microblogs`, `posts`, `classrooms`, `feedback`, `study`,
 `personas`, `user_personas`, `leaderboard`, `elementary_leaderboard`, `skill_snapshots`,
-plus the `user_sections` and `classroom_students` association rows.
+`training_sessions`, plus the `user_sections` and `classroom_students` association rows.
 
 The presence system's tables travel together as one `presence` bundle
 (`/api/export/presence`, `/api/export/import/presence`, built in

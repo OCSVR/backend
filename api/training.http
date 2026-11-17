@@ -1,0 +1,122 @@
+# OCS VR training walkthrough (sessions, scores, progress).
+# Select the REST Client environment, then send each numbered request top to bottom,
+# checking the expected status in its heading. REST Client keeps the login cookie.
+# Creates real rows in the selected environment: training sessions for the account you sign in as.
+# The VR app sends the same requests; scripts/verify_training.py checks them automatically.
+@module = build_computer.identify_components
+
+### 1. Authenticate as any active account (expect 200)
+# @name login
+# @prompt uid Enter your user ID
+# @prompt password Enter your password
+POST {{baseUrl}}/api/authenticate
+Content-Type: application/json
+Accept: application/json
+
+{
+  "uid": "{{uid}}",
+  "password": "{{password}}"
+}
+
+### 2. Who am I? The uid here is the learner_id of every session below (expect 200)
+# @name me
+GET {{baseUrl}}/api/id
+Accept: application/json
+
+### 3. Start a session: a mission begins (expect 201 with a session_id, status "started")
+# @name start
+POST {{baseUrl}}/api/sessions/start
+Content-Type: application/json
+Accept: application/json
+
+{
+  "module": "{{module}}",
+  "device": "quest3"
+}
+
+### 4. Complete it: the mission ended (expect 200, status "completed")
+# The server sets the learner and the times itself; a learner_id or timestamp in the body is not saved.
+POST {{baseUrl}}/api/sessions/complete
+Content-Type: application/json
+Accept: application/json
+
+{
+  "session_id": "{{start.response.body.$.session_id}}",
+  "module": "{{module}}",
+  "status": "completed",
+  "attempts": 2,
+  "duration_s": 184,
+  "score": 85,
+  "device": "quest3"
+}
+
+### 5. Complete it again, as a retry would (expect 200 with the result from step 4, unchanged)
+POST {{baseUrl}}/api/sessions/complete
+Content-Type: application/json
+Accept: application/json
+
+{
+  "session_id": "{{start.response.body.$.session_id}}",
+  "attempts": 1,
+  "duration_s": 10,
+  "score": 100
+}
+
+### 6. Complete a mission in one request, with no start (expect 201)
+POST {{baseUrl}}/api/sessions/complete
+Content-Type: application/json
+Accept: application/json
+
+{
+  "module": "build_network.connect_two_computers",
+  "attempts": 1,
+  "duration_s": 60,
+  "score": 70,
+  "device": "desktop"
+}
+
+### 7. A score out of range (expect 400 naming the field)
+POST {{baseUrl}}/api/sessions/complete
+Content-Type: application/json
+Accept: application/json
+
+{
+  "module": "{{module}}",
+  "attempts": 1,
+  "duration_s": 60,
+  "score": 101
+}
+
+### 8. A score for somebody else (expect 403)
+POST {{baseUrl}}/api/sessions/complete
+Content-Type: application/json
+Accept: application/json
+
+{
+  "learner_id": "somebody-else",
+  "module": "{{module}}",
+  "attempts": 1,
+  "duration_s": 60,
+  "score": 100
+}
+
+### 9. A session_id that does not exist (expect 404)
+POST {{baseUrl}}/api/sessions/complete
+Content-Type: application/json
+Accept: application/json
+
+{
+  "session_id": "00000000-0000-4000-8000-000000000000",
+  "attempts": 1,
+  "duration_s": 60,
+  "score": 100
+}
+
+### 10. My progress: totals, one line per module, recent sessions (expect 200)
+GET {{baseUrl}}/api/learners/{{me.response.body.$.uid}}/progress
+Accept: application/json
+
+### 11. Somebody else's progress (expect 200 as a Teacher or Admin, 403 as anyone else)
+# @prompt learner Enter another learner's user ID
+GET {{baseUrl}}/api/learners/{{learner}}/progress
+Accept: application/json
