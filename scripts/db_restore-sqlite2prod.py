@@ -52,13 +52,14 @@ IMPORT_ENDPOINTS = {
     'leaderboard':            '/api/export/import/leaderboard',
     'elementary_leaderboard': '/api/export/import/elementary_leaderboard',
     'skill_snapshots':        '/api/export/import/skill_snapshots',
+    'training_sessions':      '/api/export/import/training_sessions',
     'presence':               '/api/export/import/presence',  # one bundle, see model/presence_backup.py
 }
 
 # Data types large enough to need batched uploads
 LARGE_DATA_TYPES = {
     'users', 'microblogs', 'posts', 'user_personas', 'personas',
-    'leaderboard', 'elementary_leaderboard', 'skill_snapshots',
+    'leaderboard', 'elementary_leaderboard', 'skill_snapshots', 'training_sessions',
 }
 BATCH_SIZE = 50
 
@@ -177,6 +178,10 @@ def read_local_data_from_db():
                 snapshot_data['userUid'] = snapshot.user.uid if snapshot.user else None
                 all_data['skill_snapshots'].append(snapshot_data)
             print(f"    Found {len(all_data['skill_snapshots'])} skill snapshots")
+
+            from model.training import export_sessions
+            all_data['training_sessions'] = export_sessions()
+            print(f"    Found {len(all_data['training_sessions'])} training sessions")
 
             from model.presence_backup import export_presence
             all_data['presence'] = export_presence()

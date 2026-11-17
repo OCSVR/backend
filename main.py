@@ -36,6 +36,7 @@ from api.profile_game import profile_game_api  # CS Pathway Game profile persist
 from api.snapshot_proxy import snapshot_proxy
 from api.rfid_api import rfid_api
 from api.presence_api import presence_api
+from api.training_api import training_api  # OCS VR training sessions and scores
 #from api.announcement import announcement_api ##temporary revert
 
 # database Initialization functions
@@ -55,6 +56,7 @@ from model.skill_snapshot import SkillSnapshot
 from model.post import Post, init_posts
 from model.microblog import MicroBlog, Topic, initMicroblogs
 from model.leaderboard import ScoreCounterEvent, ElementaryLeaderboardEvent
+from model.training import TrainingSession, initTrainingSessions
 from hacks.jokes import initJokes 
 # from model.announcement import Announcement ##temporary revert
 
@@ -97,6 +99,7 @@ app.register_blueprint(profile_game_api)  # CS Pathway Game profile persistence
 app.register_blueprint(snapshot_proxy)  # Register the snapshot proxy API
 app.register_blueprint(rfid_api)  # Register the RFID attendance API
 app.register_blueprint(presence_api)  # Register the generic presence event API
+app.register_blueprint(training_api)  # Register the OCS VR training API
 # app.register_blueprint(announcement_api) ##temporary revert
 
 # Jokes file initialization
@@ -303,6 +306,7 @@ def generate_data():
     initPersonas()
     initPersonaUsers()
     seed_schedules()  # presence schedules from model/presence_schedules.json
+    initTrainingSessions()  # sample OCS VR sessions for the default test user
 
 # Register the custom command group with the Flask application
 app.cli.add_command(custom_cli)

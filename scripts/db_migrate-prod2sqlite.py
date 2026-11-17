@@ -61,13 +61,14 @@ EXPORT_ENDPOINTS = {
     'leaderboard':            '/api/export/leaderboard',
     'elementary_leaderboard': '/api/export/elementary_leaderboard',
     'skill_snapshots':        '/api/export/skill_snapshots',
+    'training_sessions':      '/api/export/training_sessions',
     'presence':               '/api/export/presence',  # one bundle, see model/presence_backup.py
 }
 
 # Data types that require paginated fetching
 PAGINATED_TYPES = {
     'users', 'microblogs', 'posts', 'topics', 'personas', 'user_personas',
-    'leaderboard', 'elementary_leaderboard', 'skill_snapshots',
+    'leaderboard', 'elementary_leaderboard', 'skill_snapshots', 'training_sessions',
 }
 
 # ── Target safety guard ───────────────────────────────────────────────────────
@@ -791,6 +792,17 @@ def load_skill_snapshots(snapshots_data):
     print(f"  Loaded {loaded} skill snapshots.")
 
 
+def load_training_sessions(sessions_data):
+    """OCS VR training sessions; a session already in the database is skipped."""
+    from model.training import import_sessions
+    stats = import_sessions(sessions_data)
+    for err in stats['errors'][:3]:
+        print(f"  Error loading training session: {err}")
+    if stats['skipped'] or stats['failed']:
+        print(f"  Skipped {stats['skipped']} already here, {stats['failed']} failed")
+    print(f"  Loaded {stats['imported']} training sessions.")
+
+
 def load_presence(presence_data):
     """Presence system tables (rooms, schedules, tags, periods, events), as one bundle."""
     from model.presence_backup import import_presence
@@ -821,6 +833,8 @@ def load_all(all_data):
                           lambda: load_elementary_leaderboard(all_data.get('elementary_leaderboard', []))),
         ('skill_snapshots',
                           lambda: load_skill_snapshots(all_data.get('skill_snapshots', []))),
+        ('training_sessions',
+                          lambda: load_training_sessions(all_data.get('training_sessions', []))),
         ('presence',      lambda: load_presence(all_data.get('presence', {}))),
     ]
 
